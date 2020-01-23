@@ -8,6 +8,8 @@
  ******************************************************************************/
 package com.openshift.restclient.authorization;
 
+import java.util.logging.Logger;
+
 import org.apache.commons.lang.StringUtils;
 
 import com.openshift.restclient.OpenShiftException;
@@ -20,6 +22,7 @@ public class UnauthorizedException extends OpenShiftException {
 
 	private static final long serialVersionUID = -3999801367045252906L;
 	private static final String MSG_BASE = "Unauthorized to access resource.";
+	  private static final Logger LOGGER = Logger.getLogger(UnauthorizedException.class.getName());
 	private String message;
 	private IStatus status;
 	private IAuthorizationDetails details;
@@ -32,13 +35,22 @@ public class UnauthorizedException extends OpenShiftException {
 		super(String.format("%s See the authorization details for additional information or contact your system administrator.", MSG_BASE));
 		this.status = status;
 		this.details = details;
+		LOGGER.fine("Build exception from details: " + details);
 		if(details != null) {
 			if(StringUtils.isNotBlank(details.getScheme())){
-				message = String.format("%s You can access the server using %s authentication.", MSG_BASE, details.getScheme());
-			}else
+				String messageFormat = "%s You can access the server using %s authentication. Details: %s\n\t parent message: %s";
+                message = String.format(messageFormat, MSG_BASE, details.getScheme(), details.getMessage(),super.getMessage());
+                LOGGER.fine("Build exception with message: " + message);
+			}else {
 				message = details.getMessage();
-		}else
+                LOGGER.fine("Build exception with message: " + message);
+			}
+
+		}else {
 			message = super.getMessage();
+		    LOGGER.fine("Build exception with message: " + message);
+		}
+
 	}
 	
 	public IAuthorizationDetails getAuthorizationDetails() {

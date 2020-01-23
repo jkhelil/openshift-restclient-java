@@ -10,6 +10,8 @@
  ******************************************************************************/
 package com.openshift.internal.restclient.okhttp;
 
+import java.util.logging.Logger;
+
 import org.apache.commons.lang.StringUtils;
 
 import com.openshift.restclient.authorization.IAuthorizationContext;
@@ -25,6 +27,7 @@ import okhttp3.Request.Builder;
  *
  */
 public class BasicChallangeHandler implements IChallangeHandler{
+    private static final Logger LOGGER = Logger.getLogger(BasicChallangeHandler.class.getName());
 
 	private IAuthorizationContext context;
 
@@ -34,6 +37,7 @@ public class BasicChallangeHandler implements IChallangeHandler{
 
 	@Override
 	public boolean canHandle(Headers headers) {
+	    LOGGER.fine("can we handle " + headers + "?");
 		return OpenShiftAuthenticator.AUTHORIZATION_BASIC.equalsIgnoreCase(headers.get(OpenShiftAuthenticator.PROPERTY_WWW_AUTHENTICATE));
 	}
 
@@ -41,12 +45,16 @@ public class BasicChallangeHandler implements IChallangeHandler{
 	public Builder handleChallange(Builder builder) {
 		StringBuilder value = new StringBuilder();
 		if(StringUtils.isNotBlank(context.getUserName())) {
+            LOGGER.fine("Username" + context.getUserName() );
 			value.append(context.getUserName()).append(":");
 		}
 		if(StringUtils.isNotBlank(context.getPassword())) {
+            LOGGER.fine("Password" + context.getPassword() );
 			value.append(context.getPassword());
 		}
-		return builder.header(OpenShiftAuthenticator.PROPERTY_AUTHORIZATION, IHttpConstants.AUTHORIZATION_BASIC + " " + Base64Coder.encode(value.toString()));
+		String basicAuthEncoded = Base64Coder.encode(value.toString());
+        LOGGER.fine("Basic Auth:" + basicAuthEncoded );
+        return builder.header(OpenShiftAuthenticator.PROPERTY_AUTHORIZATION, IHttpConstants.AUTHORIZATION_BASIC + " " + basicAuthEncoded);
 	}
 	
 }

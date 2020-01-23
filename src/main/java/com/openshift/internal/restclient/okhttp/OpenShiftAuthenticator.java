@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -45,7 +46,8 @@ public class OpenShiftAuthenticator implements Authenticator, IHttpConstants{
 	private static final String CSRF_TOKEN = "X-CSRF-Token";
 	private static final String ERROR = "error";
 	private static final String ERROR_DETAILS = "error_details";
-	
+	private static final Logger LOGGER = Logger.getLogger(OpenShiftAuthenticator.class.getName());
+
 	private Collection<IChallangeHandler> challangeHandlers = new ArrayList<>();
 	private OkHttpClient okClient;
 	private IClient client;
@@ -54,16 +56,21 @@ public class OpenShiftAuthenticator implements Authenticator, IHttpConstants{
 	public Request authenticate(Route route, Response response) throws IOException {
 		if(unauthorizedForCluster(response)){
 			String requestUrl = response.request().url().toString();
-			Request authRequest = new Request.Builder()
+			String url = route.address().url().toString() + "oauth/authorize?response_type=token&client_id=openshift-challenging-client";
+			LOGGER.fine("Requesting authentication on " + url);
+            Request authRequest = new Request.Builder()
 					.addHeader(CSRF_TOKEN, "1")
-					.url(route.address().url().toString() + "oauth/authorize?response_type=token&client_id=openshift-challenging-client")
+					.url(url)
 					.build();
 			try (
 				Response authResponse = tryAuth(authRequest)){
+		         LOGGER.fine("Response to authentication is: " + authResponse);
 				if(authResponse.isSuccessful()) {
 					String token = extractAndSetAuthContextToken(authResponse);
-					return response.request().newBuilder()
-							.header(IHttpConstants.PROPERTY_AUTHORIZATION, String.format("%s %s", IHttpConstants.AUTHORIZATION_BEARER, token))
+					String bearer = String.format("%s %s", IHttpConstants.AUTHORIZATION_BEARER, token);
+	                LOGGER.fine("Bearer is: " + bearer);
+                    return response.request().newBuilder()
+							.header(IHttpConstants.PROPERTY_AUTHORIZATION, bearer)
 							.build();
 				}
 			}
@@ -75,10 +82,17 @@ public class OpenShiftAuthenticator implements Authenticator, IHttpConstants{
 	
 	private boolean unauthorizedForCluster(Response response) {
 		String requestHost = response.request().url().host();
-		return response.code() == IHttpConstants.STATUS_UNAUTHORIZED && client.getBaseURL().getHost().equals(requestHost);
+        int responseCode = response.code();
+        LOGGER.fine("Request host  is: " + requestHost + " and response code: " + responseCode);
+        String baseHost = client.getBaseURL().getHost();
+        boolean unauthorized = (responseCode == STATUS_UNAUTHORIZED) && baseHost.equals(requestHost);
+        LOGGER.fine("Request is unauthorized: " + unauthorized);    
+        return unauthorized;
 	}
 	
 	private Response tryAuth(Request authRequest) throws IOException {
+        System.out.println("##########  authRequest:  details:" + authRequest);
+        LOGGER.fine("authRequest:  details:" + authRequest);
 		return okClient
 		.newBuilder()
 		.authenticator(new Authenticator() {
@@ -86,10 +100,14 @@ public class OpenShiftAuthenticator implements Authenticator, IHttpConstants{
 			@Override
 			public Request authenticate(Route route, Response response) throws IOException {
 				if(StringUtils.isNotBlank(response.request().header(AUTH_ATTEMPTS))) {
+				    System.out.println("##########  Response with not blank AUTH_ATTEMPTS :  response:" + response);
+			        LOGGER.fine("Response with not blanch AUTH_ATTEMPTS :  response:" + response);
 					return null;
 				}
 				if(StringUtils.isNotBlank(response.header(IHttpConstants.PROPERTY_WWW_AUTHENTICATE))) {
-					for (IChallangeHandler challangeHandler : challangeHandlers) {
+				    System.out.println("##########  Response with not blank PROPERTY_WWW_AUTHENTICATE :  response:" + response);
+                    LOGGER.fine("Response with not blanch PROPERTY_WWW_AUTHENTICATE :  response:" + response);
+				    for (IChallangeHandler challangeHandler : challangeHandlers) {
 						if(!challangeHandler.canHandle(response.headers())) {
 							Builder requestBuilder = response.request().newBuilder()
 									.header(AUTH_ATTEMPTS, "1");
@@ -109,6 +127,8 @@ public class OpenShiftAuthenticator implements Authenticator, IHttpConstants{
 	private IAuthorizationDetails captureAuthDetails(String url) {
 		IAuthorizationDetails details = null;
 		Map<String, String> pairs = URIUtils.splitFragment(url);
+        System.out.println("#############################: "+ pairs);
+		LOGGER.fine("Error details:" + pairs);
 		if (pairs.containsKey(ERROR)) {
 			details = new AuthorizationDetails(pairs.get(ERROR), pairs.get(ERROR_DETAILS));
 		}
@@ -116,14 +136,22 @@ public class OpenShiftAuthenticator implements Authenticator, IHttpConstants{
 	}
 	
 	private String extractAndSetAuthContextToken(Response response) {
+        LOGGER.fine("Extracting response and setting token....");
+
 		String token = null;
 		Map<String, String> pairs = URIUtils.splitFragment(response.header(PROPERTY_LOCATION));
+        LOGGER.fine("AuthContextToken details:" + pairs);
 		if (pairs.containsKey(ACCESS_TOKEN)) {
 			token = pairs.get(ACCESS_TOKEN);
+	        LOGGER.fine("Token find in response under " + ACCESS_TOKEN + " key with value: " + token);
 			IAuthorizationContext authContext = client.getAuthorizationContext();
 			if(authContext != null) {
 				authContext.setToken(token);
+			} else {
+			    LOGGER.severe("ERROR: AutheContext is null !!!");
 			}
+		} else {
+	        LOGGER.severe("ERROR: No token found in response !!!");
 		}
 		return token;
 	}
@@ -136,7 +164,14 @@ public class OpenShiftAuthenticator implements Authenticator, IHttpConstants{
 	public void setClient(DefaultClient client) {
 		this.client = client;
 		challangeHandlers.clear();
-		challangeHandlers.add(new BasicChallangeHandler(client.getAuthorizationContext()));
+		IAuthorizationContext authorizationContext = client.getAuthorizationContext();
+        System.out.println("############### Auth Context  ##############: "+ authorizationContext);
+        LOGGER.fine("AuthContext:  details:" + authorizationContext);  
+        BasicChallangeHandler challenge = new BasicChallangeHandler(authorizationContext);
+        System.out.println("############### Auth BasicChallangeHandler  ##############: " + challenge);
+        LOGGER.fine("BasicChallangeHandler:  challenge:" + challenge);  
+        
+        challangeHandlers.add(challenge);
 	}
 
 }
