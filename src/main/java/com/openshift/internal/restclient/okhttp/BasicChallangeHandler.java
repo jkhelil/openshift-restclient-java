@@ -20,7 +20,7 @@ import com.openshift.restclient.utils.Base64Coder;
 
 import okhttp3.Headers;
 import okhttp3.Request.Builder;
-
+import static  com.openshift.internal.restclient.okhttp.OpenShiftAuthenticator.AUTHORIZATION_BASIC;
 /**
  * 
  * @author jeff.cantrill
@@ -38,8 +38,10 @@ public class BasicChallangeHandler implements IChallangeHandler{
 	@Override
 	public boolean canHandle(Headers headers) {
 	    System.out.println("###### can we handle " + headers + "?");
-        LOGGER.fine("can we handle " + headers + "?");
-		return OpenShiftAuthenticator.AUTHORIZATION_BASIC.equalsIgnoreCase(headers.get(OpenShiftAuthenticator.PROPERTY_WWW_AUTHENTICATE));
+        LOGGER.fine("can we handle " + headers + "?");     
+		String authHeader = headers.get(OpenShiftAuthenticator.PROPERTY_WWW_AUTHENTICATE);
+		return authHeader != null && authHeader.toLowerCase().startsWith(AUTHORIZATION_BASIC.toLowerCase());
+//        return OpenShiftAuthenticator.AUTHORIZATION_BASIC.equalsIgnoreCase(wwwAuthenticateHeader);
 	}
 
 	@Override

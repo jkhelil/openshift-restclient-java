@@ -63,51 +63,23 @@ public class OpenShiftAuthenticator implements Authenticator, IHttpConstants{
 					.addHeader(CSRF_TOKEN, "1")
 					.url(url)
 					.build();
-			// WARNING: THIS IS A TRY-WITH-RESOURCES STATEMENT NOT A TRADITIONAL TRY-CATCH
-            // ARGGGHHH
-//            try (
-//				Response authResponse = tryAuth(authRequest);){
-//		         System.out.println("###### Response to authentication is: " + authResponse);
-//                 LOGGER.fine("Response to authentication is: " + authResponse);
-//				if(authResponse.isSuccessful()) {
-//					String token = extractAndSetAuthContextToken(authResponse);
-//					String bearer = String.format("%s %s", IHttpConstants.AUTHORIZATION_BEARER, token);
-//	                System.out.println("###### Bearer is: " + bearer);
-//                    LOGGER.fine("Bearer is: " + bearer);
-//                    return response.request().newBuilder()
-//							.header(IHttpConstants.PROPERTY_AUTHORIZATION, bearer)
-//							.build();
-//				}
-//			} catch (Exception e) {
-//			    e.printStackTrace();
-//	            throw new UnauthorizedException(captureAuthDetails(requestUrl), ResponseCodeInterceptor.getStatus(response.body().string()));
-//			}
-            
-            Response authResponse = null;
-            try {
-                authResponse = tryAuth(authRequest);
+            // WARNING: THIS IS A TRY-WITH-RESOURCES STATEMENT NOT A TRADITIONAL TRY-CATCH
+            try (
+                    Response authResponse = tryAuth(authRequest)){
                 System.out.println("###### Response to authentication is: " + authResponse);
                 LOGGER.fine("Response to authentication is: " + authResponse);
-                if (authResponse.isSuccessful()) {
-                    String token = extractAndSetAuthContextToken(authResponse);
-                    String bearer = String.format("%s %s", IHttpConstants.AUTHORIZATION_BEARER, token);
-                    System.out.println("###### Bearer is: " + bearer);
-                    LOGGER.fine("Bearer is: " + bearer);
-                    return response.request().newBuilder().header(IHttpConstants.PROPERTY_AUTHORIZATION, bearer)
-                            .build();
+                    if(authResponse.isSuccessful()) {
+                        String token = extractAndSetAuthContextToken(authResponse);
+                        String bearer = String.format("%s %s", IHttpConstants.AUTHORIZATION_BEARER, token);
+                        System.out.println("###### Bearer is: " + bearer);
+                        LOGGER.fine("Bearer is: " + bearer);
+                        return response.request().newBuilder()
+                                .header(IHttpConstants.PROPERTY_AUTHORIZATION, bearer)
+                                .build();
+                    }
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                throw new UnauthorizedException(captureAuthDetails(requestUrl),
-                        ResponseCodeInterceptor.getStatus(response.body().string()));
-            } finally {
-                if( authResponse != null ) { 
-                    try { authResponse.close(); } catch( Exception e ) { e.printStackTrace(); throw e; }
-                }
+                throw new UnauthorizedException(captureAuthDetails(requestUrl), ResponseCodeInterceptor.getStatus(response.body().string()));
             }
-
-        }
-
 		return null;
 	}
 	
