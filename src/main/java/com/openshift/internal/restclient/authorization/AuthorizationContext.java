@@ -126,6 +126,15 @@ public class AuthorizationContext implements IAuthorizationContext {
 	public String getPassword() {
 		return this.password;
 	}
+
+    @Override
+    public String toString() {
+        return "AuthorizationContext [token=" + token + ", expires=" + expires + ", scheme=" + scheme + ", user=" + user
+                + ", userName=" + userName + ", password=" + password + ", client=" + client + "]";
+    }
+	
+	
+	
 	
 	
 }
