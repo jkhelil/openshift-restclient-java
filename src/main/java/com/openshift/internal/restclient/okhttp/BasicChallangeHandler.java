@@ -37,7 +37,8 @@ public class BasicChallangeHandler implements IChallangeHandler{
 
 	@Override
 	public boolean canHandle(Headers headers) {
-	    LOGGER.fine("can we handle " + headers + "?");
+	    System.out.println("###### can we handle " + headers + "?");
+        LOGGER.fine("can we handle " + headers + "?");
 		return OpenShiftAuthenticator.AUTHORIZATION_BASIC.equalsIgnoreCase(headers.get(OpenShiftAuthenticator.PROPERTY_WWW_AUTHENTICATE));
 	}
 
@@ -45,14 +46,17 @@ public class BasicChallangeHandler implements IChallangeHandler{
 	public Builder handleChallange(Builder builder) {
 		StringBuilder value = new StringBuilder();
 		if(StringUtils.isNotBlank(context.getUserName())) {
+            System.out.println("###### Username" + context.getUserName() );
             LOGGER.fine("Username" + context.getUserName() );
 			value.append(context.getUserName()).append(":");
 		}
 		if(StringUtils.isNotBlank(context.getPassword())) {
+            System.out.println("###### Password" + context.getPassword() );
             LOGGER.fine("Password" + context.getPassword() );
 			value.append(context.getPassword());
 		}
 		String basicAuthEncoded = Base64Coder.encode(value.toString());
+        System.out.println("###### Basic Auth:" + basicAuthEncoded );
         LOGGER.fine("Basic Auth:" + basicAuthEncoded );
         return builder.header(OpenShiftAuthenticator.PROPERTY_AUTHORIZATION, IHttpConstants.AUTHORIZATION_BASIC + " " + basicAuthEncoded);
 	}

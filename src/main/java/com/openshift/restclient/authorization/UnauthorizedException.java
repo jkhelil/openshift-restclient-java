@@ -35,20 +35,24 @@ public class UnauthorizedException extends OpenShiftException {
 		super(String.format("%s See the authorization details for additional information or contact your system administrator.", MSG_BASE));
 		this.status = status;
 		this.details = details;
-		LOGGER.fine("Build exception from details: " + details);
+		System.out.println("###### Build exception from details: " + details);
+        LOGGER.fine("Build exception from details: " + details);
 		if(details != null) {
 			if(StringUtils.isNotBlank(details.getScheme())){
 				String messageFormat = "%s You can access the server using %s authentication. Details: %s\n\t parent message: %s";
                 message = String.format(messageFormat, MSG_BASE, details.getScheme(), details.getMessage(),super.getMessage());
+                System.out.println("###### Build exception with message: " + message);
                 LOGGER.fine("Build exception with message: " + message);
 			}else {
 				message = details.getMessage();
+                System.out.println("###### Build exception with message: " + message);
                 LOGGER.fine("Build exception with message: " + message);
 			}
 
 		}else {
 			message = super.getMessage();
-		    LOGGER.fine("Build exception with message: " + message);
+            System.out.println("###### Build exception with message: " + message);
+            LOGGER.fine("Build exception with message: " + message);
 		}
 
 	}

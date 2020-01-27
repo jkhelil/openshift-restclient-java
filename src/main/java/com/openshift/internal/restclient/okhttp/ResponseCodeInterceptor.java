@@ -93,6 +93,7 @@ public class ResponseCodeInterceptor implements Interceptor, IHttpConstants {
 	}
 	
 	public static OpenShiftException createOpenShiftException(IClient client, Response response, Throwable e) throws IOException{
+        System.out.println("####### " + response + " " +  e);
 		LOGGER.debug(response, e);
 		IStatus status = getStatus(response.body().string());
 		int responseCode = response.code();
@@ -116,13 +117,15 @@ public class ResponseCodeInterceptor implements Interceptor, IHttpConstants {
 	}
 
 	public static OpenShiftException createOpenShiftException(IClient client, int responseCode, String message, String response, Throwable e) throws IOException{
-		LOGGER.debug(response, e);
+        System.out.println("####### " + response + " " +  e);
+        LOGGER.debug(response, e);
 		IStatus status = getStatus(response);
 		if(status != null && status.getCode() != 0) {
 			responseCode = status.getCode();
 		}
 		switch(responseCode) {
 		case STATUS_BAD_REQUEST:
+		    
 			return new BadRequestException(e, status, response);
 		case STATUS_FORBIDDEN:
 			return new ResourceForbiddenException(status != null ? status.getMessage() : "Resource Forbidden", status, e);
