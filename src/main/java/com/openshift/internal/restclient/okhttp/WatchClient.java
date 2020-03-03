@@ -10,6 +10,8 @@
  ******************************************************************************/
 package com.openshift.internal.restclient.okhttp;
 
+import static java.lang.String.format;
+
 import java.io.IOException;
 import java.net.ProtocolException;
 import java.util.ArrayList;
@@ -19,11 +21,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Logger;
 
 import org.apache.commons.lang.StringUtils;
 import org.jboss.dmr.ModelNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.openshift.internal.restclient.DefaultClient;
 import com.openshift.internal.restclient.URLBuilder;
@@ -49,7 +50,7 @@ import okio.Buffer;
 
 public class WatchClient implements IWatcher, IHttpConstants {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(WatchClient.class);
+	private static final Logger LOGGER = Logger.getLogger(WatchClient.class.getName());
 	private DefaultClient client;
 	private OkHttpClient okClient;
 	private AtomicReference<Status> status = new AtomicReference<>(Status.Stopped);
@@ -155,7 +156,7 @@ public class WatchClient implements IWatcher, IHttpConstants {
 				}
 				listener.disconnected();
 			} catch (Exception e) {
-				LOGGER.debug("Unable to stop the watch client",e);
+				LOGGER.fine("Unable to stop the watch client, stackTrace: " + e.getStackTrace());
 			}finally {
 				wsClient = null;
 			}
@@ -167,13 +168,13 @@ public class WatchClient implements IWatcher, IHttpConstants {
 		
 		@Override
 		public void onClose(int statusCode, String reason) {
-			LOGGER.debug("WatchSocket closed for kind: {}, code: {}, reason: {}", new Object[]{kind, statusCode, reason});
+	        LOGGER.fine( format( "WatchSocket closed for kind: %s, code: %s, reason: %s", new Object[]{kind, statusCode, reason}));
 			listener.disconnected();
 		}
 
 		@Override
 		public void onFailure(IOException err, Response response) {
-			LOGGER.debug("WatchSocket Error for kind {}: {}", kind, err);
+            LOGGER.fine( format( "WatchSocket closed for kind: %s, code: %s, reason: %s", kind, err.getStackTrace()));
 			try {
 				if (response == null) {
 					listener.error(ResponseCodeInterceptor.createOpenShiftException(client, 0, "", "", err));
@@ -181,13 +182,13 @@ public class WatchClient implements IWatcher, IHttpConstants {
 					// Just swallow it. Means the feature isn't supported in this OS server version yet.
 					// WebSocket creates error "Expected HTTP 101 response but was '200 OK'"
 					// This is described in the web socket specification.
-					LOGGER.debug("The feature isn't supported", err);
+					LOGGER.fine("The feature isn't supported" + err.getStackTrace());
 				} else {
 					listener.error(ResponseCodeInterceptor.createOpenShiftException(client, response.code(),
 							response.body().string(), response.request().url().toString(), err));
 				}
 			} catch (IOException e) {
-				LOGGER.error("IOException trying to notify listener of specific OpenShiftException", err);
+				LOGGER.severe("IOException trying to notify listener of specific OpenShiftException" + err.getStackTrace());
 				listener.error(err);
 			}
 		}
@@ -195,19 +196,19 @@ public class WatchClient implements IWatcher, IHttpConstants {
 		@Override
 		public void onMessage(ResponseBody body) throws IOException {
 			String message = body.string();
-			LOGGER.debug(message);
+			LOGGER.fine(message);
 			ModelNode node = ModelNode.fromJSONString(message);
 			IOpenShiftWatchListener.ChangeType event = new ChangeType(node.get("type").asString());
 			IResource resource = client.getResourceFactory().create(node.get("object").toJSONString(true));
 			if(StringUtils.isEmpty(resource.getKind())) {
-				LOGGER.error("Unable to determine resource kind from: " + node.get("object").toJSONString(false));
+				LOGGER.severe("Unable to determine resource kind from: " + node.get("object").toJSONString(false));
 			}
 			listener.received(resource, event);
 		}
 
 		@Override
 		public void onOpen(WebSocket socket, Response response) {
-			LOGGER.debug("WatchSocket connected for {}", kind);
+			LOGGER.fine("WatchSocket connected for " + kind);
 			wsClient = socket;
 			listener.connected(resources);
 		}

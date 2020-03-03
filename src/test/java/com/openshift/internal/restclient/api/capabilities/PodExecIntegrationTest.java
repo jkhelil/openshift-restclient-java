@@ -10,18 +10,9 @@
  ******************************************************************************/
 package com.openshift.internal.restclient.api.capabilities;
 
-import com.openshift.internal.restclient.IntegrationTestHelper;
-import com.openshift.restclient.IClient;
-import com.openshift.restclient.ResourceKind;
-import com.openshift.restclient.api.capabilities.IPodExec;
-import com.openshift.restclient.capability.CapabilityVisitor;
-import com.openshift.restclient.capability.IStoppable;
-import com.openshift.restclient.model.IPod;
-import com.openshift.restclient.model.IResource;
-import org.junit.Before;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -30,8 +21,19 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 
-import static org.junit.Assert.*;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.openshift.internal.restclient.IntegrationTestHelper;
+import com.openshift.restclient.IClient;
+import com.openshift.restclient.ResourceKind;
+import com.openshift.restclient.api.capabilities.IPodExec;
+import com.openshift.restclient.capability.CapabilityVisitor;
+import com.openshift.restclient.capability.IStoppable;
+import com.openshift.restclient.model.IPod;
+import com.openshift.restclient.model.IResource;
 
 
 public class PodExecIntegrationTest {
@@ -42,7 +44,7 @@ public class PodExecIntegrationTest {
 
 	private static class TestExecListener implements IPodExec.IPodExecOutputListener {
 
-		private static final Logger LOG = LoggerFactory.getLogger(PodExecIntegrationTest.class);
+		private static final Logger LOG = Logger.getLogger(PodExecIntegrationTest.class.getName());
 
 
 		public final CountDownLatch testDone = new CountDownLatch(1);
@@ -59,7 +61,7 @@ public class PodExecIntegrationTest {
 
 		@Override
 		public void onStdOut(String message) {
-			LOG.debug( "onStdOut: " + message );
+			LOG.fine( "onStdOut: " + message );
 			message = message.trim();
 			if ( message.isEmpty() == false ) { // Observing that actual output appears after empty newline
 				messages.add( PodExec.CHANNEL_STDOUT+message );
@@ -68,14 +70,14 @@ public class PodExecIntegrationTest {
 
 		@Override
 		public void onStdErr(String message) {
-			LOG.debug( "onStdErr: " + message );
+			LOG.fine( "onStdErr: " + message );
 			message = message.trim();
 			messages.add( PodExec.CHANNEL_STDERR+message );
 		}
 
 		@Override
 		public void onExecErr(String message) {
-			LOG.debug( "onExecError: " + message );
+			LOG.fine( "onExecError: " + message );
 			execErrCalled.set(true);
 			message = message.trim();
 			messages.add( PodExec.CHANNEL_EXECERR+message );
@@ -90,7 +92,7 @@ public class PodExecIntegrationTest {
 		@Override
 		public void onFailure(IOException e) {
 			failureCalled.set(true);
-			LOG.error( "Potentially expected error occurred", e );
+			LOG.severe( "Potentially expected error occurred. Stacktrace: " + e.getStackTrace() );
 			testDone.countDown();
 		}
 

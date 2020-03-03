@@ -15,12 +15,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.jboss.dmr.ModelNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.openshift.internal.restclient.model.ModelNodeBuilder;
 import com.openshift.internal.restclient.model.image.ImageStreamImport;
@@ -53,7 +52,7 @@ public class DockerRegistryImageStreamImportCapability implements IImageStreamIm
 	private static final String ID = "id";
 	private static final String PARENT = "parent";
 	private static final String REALM = "realm";
-	private static final Logger LOG = LoggerFactory.getLogger(IImageStreamImportCapability.class);
+	private static final Logger LOG = Logger.getLogger(IImageStreamImportCapability.class.getName());
 	private static final String DEFAULT_DOCKER_REGISTRY = "https://registry-1.docker.io/v2";
 	private IResourceFactory factory;
 	private IProject project;
@@ -99,13 +98,13 @@ public class DockerRegistryImageStreamImportCapability implements IImageStreamIm
 			if(auth.containsKey(REALM)) {
 				Request request = createAuthRequest(auth);
 				Response response = client.newCall(request).execute();
-				LOG.debug("Auth response: " + response.toString());
+				LOG.fine("Auth response: " + response.toString());
 				if(response.code() == STATUS_OK && MEDIATYPE_APPLICATION_JSON.equals(response.headers().get(PROPERTY_CONTENT_TYPE))) {
 						ModelNode tokenNode = ModelNode.fromJSONString(response.body().string());
 						if(tokenNode.hasDefined(TOKEN)) {
 							return tokenNode.get(TOKEN).asString();
 						}else {
-							LOG.debug("No auth token was found on auth response: " + tokenNode.toJSONString(false));
+							LOG.fine("No auth token was found on auth response: " + tokenNode.toJSONString(false));
 						}
 				} else {
 					LOG.info("Unable to retrieve authentication token as response was not OK and/or unexpected content type");
@@ -129,12 +128,12 @@ public class DockerRegistryImageStreamImportCapability implements IImageStreamIm
 				.url(builder.build())
 				.header(ResponseCodeInterceptor.X_OPENSHIFT_IGNORE_RCI, "true")
 				.build();
-		LOG.debug("Auth request uri: " + request.url());
+		LOG.fine("Auth request uri: " + request.url());
 		return request;
 	}
 	
 	private Map<String, String> parseAuthDetails(String auth){
-		LOG.debug("Auth details header: " + auth);
+		LOG.fine("Auth details header: " + auth);
 		Map<String, String> map = new HashMap<>();
 		String [] authAndValues = auth.split(" ");
 		if(authAndValues.length == 2 && AUTHORIZATION_BEARER.equals(authAndValues[0])) {
@@ -162,9 +161,9 @@ public class DockerRegistryImageStreamImportCapability implements IImageStreamIm
 			builder.header(PROPERTY_AUTHORIZATION, String.format("%s %s", AUTHORIZATION_BEARER, token));
 			
 		}
-		LOG.debug("retrieveMetaData uri: " + regUri);
+		LOG.fine("retrieveMetaData uri: " + regUri);
 		Response response = client.newCall(builder.build()).execute();
-		LOG.debug("retrieveMetaData response: " + response.toString());
+		LOG.fine("retrieveMetaData response: " + response.toString());
 		switch(response.code()) {
 		case STATUS_OK:
 			return new DockerResponse(DockerResponse.DATA, response.body().string());
@@ -200,13 +199,13 @@ public class DockerRegistryImageStreamImportCapability implements IImageStreamIm
 					String token = null;
 					DockerResponse response = retrieveMetaData(okClient, token, uri);
 					if(DockerResponse.AUTH.equals(response.getResponseType())){
-						LOG.debug("Unauthorized.  Trying to retrieve token...");
+						LOG.fine("Unauthorized.  Trying to retrieve token...");
 						token = retrieveAuthToken(okClient, response.getData());
 						response = retrieveMetaData(okClient, token, uri);
 					}
 					if(DockerResponse.DATA.equals(response.getResponseType())) {
 						String meta = response.getData();
-						LOG.debug("Raw Docker image metadata: " + meta);
+						LOG.fine("Raw Docker image metadata: " + meta);
 						return buildResponse(meta, uri);
 					}else {
 						LOG.info("Unable to retrieve image metadata from docker registry");
@@ -214,7 +213,7 @@ public class DockerRegistryImageStreamImportCapability implements IImageStreamIm
 					}
 				}
 			} catch (Exception e) {
-				LOG.error("Exception while trying to retrieve image metadata from docker", e);
+				LOG.severe("Exception while trying to retrieve image metadata from docker: " + e.getStackTrace());
 			}
 		}
 		return buildErrorResponse(uri);
@@ -263,7 +262,7 @@ public class DockerRegistryImageStreamImportCapability implements IImageStreamIm
 
 		
 		ModelNode last = entries.get(entries.size() - 1);
-		LOG.debug("newest history: " + last.toJSONString(false));
+		LOG.fine("newest history: " + last.toJSONString(false));
 		return last;
 	}
 

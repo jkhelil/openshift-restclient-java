@@ -16,11 +16,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.openshift.restclient.IClient;
 import com.openshift.restclient.capability.IBinaryCapability.OpenShiftBinaryOption;
@@ -29,7 +28,7 @@ import com.openshift.restclient.model.IPod;
 
 public class OpenShiftBinaryPodLogRetrieval implements IPodLogRetrieval {
 	
-	private static final Logger LOG = LoggerFactory.getLogger(IPodLogRetrieval.class);
+	private static final Logger LOG = Logger.getLogger(IPodLogRetrieval.class.getName());
 	private IPod pod;
 	private IClient client;
 	private Map<String, PodLogs> cache = new HashMap<>();
@@ -87,7 +86,7 @@ public class OpenShiftBinaryPodLogRetrieval implements IPodLogRetrieval {
 			PodLogs logs = cache.remove(container);
 			logs.stop();
 		}catch(Exception e) {
-			LOG.warn("Unable to stop pod logs",e);
+			LOG.warning("Unable to stop pod logs:" + e.getStackTrace());
 		}
 	}
 

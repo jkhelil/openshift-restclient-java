@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -39,8 +40,9 @@ import okhttp3.Route;
  *
  */
 public class OpenShiftAuthenticator implements Authenticator, IHttpConstants{
-	
+    public static final Logger LOGGER = Logger.getLogger(OpenShiftAuthenticator.class.getName());
 	public static final String ACCESS_TOKEN = "access_token";
+
 	private static final String AUTH_ATTEMPTS = "X-OPENSHIFT-AUTH-ATTEMPTS";
 	private static final String CSRF_TOKEN = "X-CSRF-Token";
 	private static final String ERROR = "error";

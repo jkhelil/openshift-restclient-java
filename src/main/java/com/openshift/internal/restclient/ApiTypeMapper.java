@@ -19,13 +19,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
 import org.jboss.dmr.ModelNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.openshift.internal.restclient.model.properties.ResourcePropertyKeys;
 import com.openshift.internal.util.JBossDmrExtentions;
@@ -47,7 +46,8 @@ import okhttp3.Response;
  */
 public class ApiTypeMapper implements IApiTypeMapper, ResourcePropertyKeys{
 	
-	private static final Logger LOGGER = LoggerFactory.getLogger(ApiTypeMapper.class);
+    public static final Logger LOGGER = Logger.getLogger(ApiTypeMapper.class.getName());
+    
 	private final String baseUrl;
 	private final OkHttpClient client;
 	private List<VersionedApiResource> resourceEndpoints;
@@ -186,7 +186,7 @@ public class ApiTypeMapper implements IApiTypeMapper, ResourcePropertyKeys{
 	private String readEndpoint(final String endpoint) {
 		try {
 			final URL url = new URL(new URL(this.baseUrl), endpoint);
-			LOGGER.debug(url.toString());
+			LOGGER.fine("Querying url: " + url);
 			Request request = new Request.Builder()
 					.url(url)
 					.build();

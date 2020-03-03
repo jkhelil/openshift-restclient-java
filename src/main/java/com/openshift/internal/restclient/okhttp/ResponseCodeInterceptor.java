@@ -10,6 +10,11 @@
  ******************************************************************************/
 package com.openshift.internal.restclient.okhttp;
 
+import java.io.IOException;
+import java.util.logging.Logger;
+
+import org.apache.commons.lang.StringUtils;
+
 import com.openshift.internal.restclient.DefaultClient;
 import com.openshift.internal.restclient.authorization.AuthorizationDetails;
 import com.openshift.internal.restclient.model.Status;
@@ -21,12 +26,9 @@ import com.openshift.restclient.OpenShiftException;
 import com.openshift.restclient.authorization.ResourceForbiddenException;
 import com.openshift.restclient.http.IHttpConstants;
 import com.openshift.restclient.model.IStatus;
+
 import okhttp3.Interceptor;
 import okhttp3.Response;
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
 
 /**
  * Interpret response codes and handle accordingly
@@ -38,7 +40,7 @@ public class ResponseCodeInterceptor implements Interceptor, IHttpConstants {
 	
 	public static final String X_OPENSHIFT_IGNORE_RCI = "X-OPENSHIFT-IGNORE-RCI";
 
-	private static final Logger LOGGER = Logger.getLogger(ResponseCodeInterceptor.class);
+	private static final Logger LOGGER = Logger.getLogger(ResponseCodeInterceptor.class.getName());
 	
 	private IClient client;
 
@@ -93,7 +95,7 @@ public class ResponseCodeInterceptor implements Interceptor, IHttpConstants {
 	}
 	
 	public static OpenShiftException createOpenShiftException(IClient client, Response response, Throwable e) throws IOException{
-		LOGGER.debug(response, e);
+		LOGGER.fine("response: " + response + "stackTrace: " + e.getStackTrace());
 		IStatus status = getStatus(response.body().string());
 		int responseCode = response.code();
 		if(status != null && status.getCode() != 0) {
@@ -116,7 +118,7 @@ public class ResponseCodeInterceptor implements Interceptor, IHttpConstants {
 	}
 
 	public static OpenShiftException createOpenShiftException(IClient client, int responseCode, String message, String response, Throwable e) throws IOException{
-		LOGGER.debug(response, e);
+        LOGGER.fine("response: " + response + "stackTrace: " + e.getStackTrace());
 		IStatus status = getStatus(response);
 		if(status != null && status.getCode() != 0) {
 			responseCode = status.getCode();

@@ -16,9 +16,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
 
 
 /**
@@ -27,7 +27,7 @@ import org.apache.log4j.Logger;
  * @author Jeff Cantrill
  */
 public class URIUtils {
-	private static final Logger LOG = Logger.getLogger(URIUtils.class);
+	private static final Logger LOG = Logger.getLogger(URIUtils.class.getName());
 	
 	private URIUtils(){
 	}
@@ -62,7 +62,7 @@ public class URIUtils {
 					}
 				}
 			} catch (UnsupportedEncodingException e) {
-				LOG.error("Unable to decode " + q, e);
+				LOG.severe("Unable to decode " + q + "stackTrace" + e.getStackTrace());
 			}
 		}
 		return params;

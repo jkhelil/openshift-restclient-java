@@ -11,16 +11,13 @@
 package com.openshift.internal.restclient.capability.resources;
 
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Logger;
 
-import com.openshift.internal.restclient.model.Status;
 import com.openshift.restclient.IClient;
 import com.openshift.restclient.ResourceKind;
 import com.openshift.restclient.UnsupportedEndpointException;
 import com.openshift.restclient.authorization.ResourceForbiddenException;
 import com.openshift.restclient.capability.resources.IImageStreamImportCapability;
-import com.openshift.restclient.http.IHttpConstants;
 import com.openshift.restclient.images.DockerImageURI;
 import com.openshift.restclient.model.IProject;
 import com.openshift.restclient.model.IStatus;
@@ -33,7 +30,7 @@ import com.openshift.restclient.model.image.IImageStreamImport;
  */
 public class ImageStreamImportCapability implements IImageStreamImportCapability {
 
-	private static final Logger LOG = LoggerFactory.getLogger(IImageStreamImportCapability.class);
+	private static final Logger LOG = Logger.getLogger(IImageStreamImportCapability.class.getName());
 	private IClient client;
 	private IProject project;
 
@@ -45,7 +42,7 @@ public class ImageStreamImportCapability implements IImageStreamImportCapability
 	@Override
 	public IImageStreamImport importImageMetadata(DockerImageURI uri) {
 		
-		LOG.debug("first trying imagestreamimport against OpenShift server...");
+		LOG.fine("first trying imagestreamimport against OpenShift server...");
 		IImageStreamImport streamImport = client.getResourceFactory().stub(ResourceKind.IMAGE_STREAM_IMPORT, "jbosstools-openshift-deployimage", project.getName());
 		streamImport.setImport(false);
 		streamImport.addImage("DockerImage", uri);
@@ -59,7 +56,7 @@ public class ImageStreamImportCapability implements IImageStreamImportCapability
 		}catch(ResourceForbiddenException | UnsupportedEndpointException e) {
 			LOG.info("Unsuccessful in trying OpenShift server. ImageStreamImport is not supported.");
 		}
-		LOG.debug("Unsuccessful in trying OpenShift server.  Trying dockerhub v2 registry...");
+		LOG.fine("Unsuccessful in trying OpenShift server.  Trying dockerhub v2 registry...");
 		DockerRegistryImageStreamImportCapability reg = new DockerRegistryImageStreamImportCapability(this.project, client.getResourceFactory(), client);
 		return reg.importImageMetadata(uri);
 	}

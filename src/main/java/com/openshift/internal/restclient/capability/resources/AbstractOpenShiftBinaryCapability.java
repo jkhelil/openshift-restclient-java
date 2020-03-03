@@ -15,11 +15,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Logger;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.openshift.restclient.IClient;
 import com.openshift.restclient.OpenShiftContext;
@@ -35,7 +34,7 @@ import com.openshift.restclient.capability.resources.LocationNotFoundException;
  */
 public abstract class AbstractOpenShiftBinaryCapability implements IBinaryCapability {
 	
-	private static final Logger LOG = LoggerFactory.getLogger(AbstractOpenShiftBinaryCapability.class);
+	private static final Logger LOG = Logger.getLogger(AbstractOpenShiftBinaryCapability.class.getName());
 	
 	
 	private static final boolean IS_MAC = StringUtils.isNotEmpty(System.getProperty("os.name"))
@@ -163,7 +162,7 @@ public abstract class AbstractOpenShiftBinaryCapability implements IBinaryCapabi
 			process = builder.start();
 			checkProcessIsAlive();
 		} catch (IOException e) {
-			LOG.error("Could not start process for {}.", new Object[]{ getName(), e });
+			LOG.severe(String.format("Could not start process for %s.", new Object[]{ getName(), e }));
 			throw new OpenShiftException(e, "Does your OpenShift binary location exist? Error starting process: %s", 
 					e.getMessage());
 		}
@@ -187,7 +186,7 @@ public abstract class AbstractOpenShiftBinaryCapability implements IBinaryCapabi
 			builder.directory(oc.getParentFile());
 		}		
 		builder.environment().remove("KUBECONFIG");
-		LOG.debug("OpenShift binary args: {}", builder.command());
+		LOG.fine("OpenShift binary args: {}" + builder.command());
 		return builder;
 	}
 	
@@ -215,12 +214,12 @@ public abstract class AbstractOpenShiftBinaryCapability implements IBinaryCapabi
 		cleanup();
 		if(!process.isAlive()) {
 			final int exitValue = process.exitValue();
-			LOG.debug("OpenShiftBinaryCapability process exit code {}", exitValue);
+			LOG.fine("OpenShiftBinaryCapability process exit code {}" + exitValue);
 			if(exitValue != 0) {
 				try {
-					LOG.debug("OpenShiftBinaryCapability process error stream", IOUtils.toString(process.getErrorStream()));
+					LOG.fine("OpenShiftBinaryCapability process error stream" + IOUtils.toString(process.getErrorStream()));
 				} catch (IOException e) {
-					LOG.debug("IOException trying to debug the process error stream", e);
+					LOG.severe("IOException trying to debug the process error stream: " + e.getStackTrace());
 				}
 			}
 			process = null;

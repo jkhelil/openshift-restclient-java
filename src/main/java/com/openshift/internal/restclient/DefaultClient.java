@@ -9,6 +9,7 @@
 package com.openshift.internal.restclient;
 
 import static com.openshift.internal.restclient.capability.CapabilityInitializer.initializeClientCapabilities;
+import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
 
 import java.io.IOException;
@@ -21,12 +22,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jboss.dmr.ModelNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.openshift.internal.restclient.authorization.AuthorizationContext;
 import com.openshift.internal.restclient.okhttp.WatchClient;
@@ -60,11 +60,11 @@ import okhttp3.Response;
  */
 public class DefaultClient implements IClient, IHttpConstants{
 	
-	public static final String SYSTEM_PROP_K8E_API_VERSION = "osjc.k8e.apiversion"; 
+    public static final String SYSTEM_PROP_K8E_API_VERSION = "osjc.k8e.apiversion"; 
 	public static final String SYSTEM_PROP_OPENSHIFT_API_VERSION = "osjc.openshift.apiversion"; 
-	
-	private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClient.class);
-	private URL baseUrl;
+    public static final Logger LOGGER = Logger.getLogger(URLBuilder.class.getName());
+
+    private URL baseUrl;
 	private OkHttpClient client;
 	private IResourceFactory factory;
 	private Map<Class<? extends ICapability>, ICapability> capabilities = new HashMap<Class<? extends ICapability>, ICapability>();
@@ -84,6 +84,7 @@ public class DefaultClient implements IClient, IHttpConstants{
 		if(this.factory != null) {
 			this.factory.setClient(this);
 		}
+		LOGGER.fine("DefaultClient initialized");
 		initMasterVersion("version/openshift", new VersionCallback(version -> this.openShiftVersion = version));
 		initMasterVersion("version", new VersionCallback(version -> this.kubernetesVersion = version));
 		this.typeMapper = typeMapper != null ? typeMapper :  new ApiTypeMapper(baseUrl.toString(), client);
@@ -93,6 +94,7 @@ public class DefaultClient implements IClient, IHttpConstants{
 	
 	@Override
 	public IClient clone() {
+        LOGGER.fine("cloning DefaultClient ");
 		AuthorizationContext context = authContext.clone();
 		DefaultClient clone = new DefaultClient(baseUrl, client, factory, typeMapper, context);
 		context.setClient(clone);
@@ -107,6 +109,7 @@ public class DefaultClient implements IClient, IHttpConstants{
 	
 	@Override
 	public IWatcher watch(String namespace, IOpenShiftWatchListener listener, String...kinds) {
+        LOGGER.fine("Watching resources: " + kinds + " in namespace: " + namespace);
 		WatchClient watcher = new WatchClient(this, this.typeMapper, this.client);
 		return watcher.watch(Arrays.asList(kinds), namespace, listener);
 	}
@@ -230,7 +233,8 @@ public class DefaultClient implements IClient, IHttpConstants{
     }
 	@SuppressWarnings("unchecked")
 	public <T> T execute(ITypeFactory factory, String method, String kind, String namespace, String name,
-        String subresource, String subContext, JSONSerializeable payload, Map<String, String> params) {
+	    String subresource, String subContext, JSONSerializeable payload, Map<String, String> params) {
+        LOGGER.fine("Executing: method " + method + "on namespace: " + namespace);
 		if(factory == null) {
 			throw new OpenShiftException("ITypeFactory is null while trying to call IClient#execute");
 		}
@@ -254,10 +258,10 @@ public class DefaultClient implements IClient, IHttpConstants{
 			Request request = newRequestBuilderTo(endpoint.toString())
 					.method(method, getPayload(method, payload))
 					.build();
-			LOGGER.debug("About to make {} request: {}", request.method(), request);
+			LOGGER.fine(format("About to make %s request: %s", request.method(), request));
 			try(Response result = client.newCall(request).execute()){
 				String response =  result.body().string();
-				LOGGER.debug("Response: {}", response);
+				LOGGER.fine("Response: " + response);
 				return (T) factory.createInstanceFrom(response);
 			}
 		} catch (IOException e){
@@ -272,7 +276,7 @@ public class DefaultClient implements IClient, IHttpConstants{
 				return null;
 			default:
 				String json = payload == null ? "" : payload.toJson(true);
-				LOGGER.debug("About to send payload: {}", json);
+				LOGGER.fine(format("About to send payload: %s", json));
 				return RequestBody.create(MediaType.parse(MEDIATYPE_APPLICATION_JSON), json);
 		}
 	}
@@ -298,6 +302,7 @@ public class DefaultClient implements IClient, IHttpConstants{
 	}
 
 	public Request.Builder newRequestBuilderTo(String endpoint,String acceptMediaType){
+	    LOGGER.fine("Building query to endpoint: " + endpoint);
 		Request.Builder builder = new Request.Builder()
 				.url(endpoint.toString())
 				.header(PROPERTY_ACCEPT, acceptMediaType);
@@ -306,6 +311,7 @@ public class DefaultClient implements IClient, IHttpConstants{
 		if(this.authContext != null &&  StringUtils.isNotBlank(this.authContext.getToken())){
 			token = this.authContext.getToken();
 		}
+		LOGGER.fine("Setting Bearer token into builder header: " + token);
 		builder.header(IHttpConstants.PROPERTY_AUTHORIZATION, String.format("%s %s", IHttpConstants.AUTHORIZATION_BEARER, token));
 		return builder;
 	}
@@ -377,7 +383,7 @@ public class DefaultClient implements IClient, IHttpConstants{
 					.build();
 			client.newCall(request).enqueue(callback);
 		} catch (IOException e) {
-			LOGGER.warn("Exception while trying to determine master version of openshift and kubernetes", e);
+			LOGGER.warning("Exception while trying to determine master version of openshift and kubernetes:" + e.getStackTrace());
 		}
 	}
 	
@@ -389,7 +395,7 @@ public class DefaultClient implements IClient, IHttpConstants{
 		@Override
 		public void onFailure(Call call, IOException e) {
 			versionSetter.accept("");
-			LOGGER.warn("Exception while trying to determine master version of openshift and kubernetes", e);
+			LOGGER.warning("Exception while trying to determine master version of openshift and kubernetes: " + e.getStackTrace());
 		}
 
 		@Override

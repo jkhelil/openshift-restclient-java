@@ -8,16 +8,7 @@
  ******************************************************************************/
 package com.openshift.internal.restclient;
 
-import com.openshift.restclient.IApiTypeMapper;
-import com.openshift.restclient.IApiTypeMapper.IVersionedApiResource;
-import com.openshift.restclient.OpenShiftException;
-import com.openshift.restclient.ResourceKind;
-import com.openshift.restclient.UnsupportedEndpointException;
-import com.openshift.restclient.http.IHttpConstants;
-import com.openshift.restclient.model.IResource;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.lang.String.format;
 
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -27,6 +18,17 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.logging.Logger;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.openshift.restclient.IApiTypeMapper;
+import com.openshift.restclient.IApiTypeMapper.IVersionedApiResource;
+import com.openshift.restclient.OpenShiftException;
+import com.openshift.restclient.ResourceKind;
+import com.openshift.restclient.UnsupportedEndpointException;
+import com.openshift.restclient.http.IHttpConstants;
+import com.openshift.restclient.model.IResource;
 
 /**
  * Helper class to build the URL connection string in the proper
@@ -36,7 +38,7 @@ import java.util.Map;
  */
 public class URLBuilder {
 	
-	private static final Logger LOG = LoggerFactory.getLogger(URLBuilder.class);
+    public static final Logger LOG = Logger.getLogger(URLBuilder.class.getName());
 	
 	private String baseUrl;
 	private String kind;
@@ -89,7 +91,7 @@ public class URLBuilder {
 
 	public URLBuilder kind(String kind) {
 		if(!ResourceKind.values().contains(kind)) {
-			LOG.warn(String.format("There kind '%s' is not recognized by this client; this operation may fail.", kind));
+			LOG.warning(String.format("There kind '%s' is not recognized by this client; this operation may fail.", kind));
 		}
 		this.kind = kind;
 		return this;
@@ -132,9 +134,7 @@ public class URLBuilder {
 		buildWithNamespaceInPath(url);
 
 		try {
-			if(LOG.isDebugEnabled()) {
-				LOG.debug(String.format("Built url: %s", url.toString()));
-			}
+			LOG.fine(String.format("Built url: %s", url.toString()));
 			return new URL(url.toString());
 		} catch (MalformedURLException e) {
 			throw new RuntimeException(e);
@@ -149,7 +149,7 @@ public class URLBuilder {
 		IVersionedApiResource apiResource = typeMappings.getEndpointFor(apiVersion, kind);
 		url.append(apiResource.getPrefix()).append("/").append(apiResource.getVersion());
 		if(namespace == null && apiResource.isNamespaced()) {
-			LOG.debug("The api endpoint for kind '{}' requires a namespace but none was provided. Will only work for priviledged user.", kind);
+			LOG.fine(String.format("The api endpoint for kind '%s' requires a namespace but none was provided. Will only work for priviledged user.", kind));
 		}
 		if(!ResourceKind.PROJECT.equals(kind) && namespace != null) {
 			url.append("/namespaces/")
@@ -182,7 +182,7 @@ public class URLBuilder {
 						.append(IHttpConstants.EQUALS)
 						.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
 					}else {
-						LOG.error("Unable to append parameter: {} since it is blank", entry.getKey());
+						LOG.severe(format("Unable to append parameter: %s since it is blank", entry.getKey()));
 					}
 				} catch (UnsupportedEncodingException e) {
 					throw new RuntimeException(e);
@@ -203,9 +203,7 @@ public class URLBuilder {
 	public String websocket() {
 		String url = build().toString();
 		url = "wss" + url.substring(url.indexOf(":"));
-		if(LOG.isDebugEnabled()) {
-			LOG.debug(String.format("Built url: %s", url));
-		}
+		LOG.fine(String.format("Built url: %s", url));
 		return url;
 	}
 

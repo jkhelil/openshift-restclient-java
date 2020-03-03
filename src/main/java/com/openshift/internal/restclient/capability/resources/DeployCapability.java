@@ -11,14 +11,13 @@
 package com.openshift.internal.restclient.capability.resources;
 
 
+import static java.lang.String.format;
+
 import java.util.Arrays;
 import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Logger;
 
 import com.openshift.restclient.IClient;
-import com.openshift.restclient.NotFoundException;
 import com.openshift.restclient.OpenShiftException;
 import com.openshift.restclient.ResourceKind;
 import com.openshift.restclient.capability.resources.IDeployCapability;
@@ -29,7 +28,7 @@ import com.openshift.restclient.model.IReplicationController;
 public class DeployCapability implements IDeployCapability{
 	
 	private static final List<String> COMPLETED_STATES = Arrays.asList("Complete", "Failed");
-	private static final Logger LOG = LoggerFactory.getLogger(IDeployCapability.class);
+	private static final Logger LOG = Logger.getLogger(IDeployCapability.class.getName());
 
 
 	private final IClient client;
@@ -55,11 +54,11 @@ public class DeployCapability implements IDeployCapability{
 	public void deploy() {
 		try {
 			final String deploymentName = getLatestDeploymentName();
-			LOG.debug("Attempting to deploy latest deployment for config %s.  Loading deployment: %s", config.getName(), deploymentName);
+			LOG.fine(format("Attempting to deploy latest deployment for config %s.  Loading deployment: %s", config.getName(), deploymentName));
 			IReplicationController deployment = client.get(ResourceKind.REPLICATION_CONTROLLER, deploymentName, config.getNamespace());
 			final String status = getStatusFor(deployment);
 			if(!COMPLETED_STATES.contains(status)) {
-				LOG.debug("Skipping deployment because deployment status %s for %s is not in %s", new Object [] {status, deploymentName, COMPLETED_STATES});
+				LOG.fine(format("Skipping deployment because deployment status %s for %s is not in %s", new Object [] {status, deploymentName, COMPLETED_STATES}));
 				return;
 			}
 		} catch(OpenShiftException e) {
